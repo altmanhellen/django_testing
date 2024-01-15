@@ -21,10 +21,18 @@ def test_anonym_cant_send_comment(client, news, form_data, pk_for_args_news):
 
 
 @pytest.mark.django_db
-def test_user_can_send_comment(admin_client, news, form_data, pk_for_args_news):
+def test_user_can_send_comment(
+    admin_client,
+    news,
+    form_data,
+    pk_for_args_news
+):
     url = reverse('news:detail', args=pk_for_args_news)
     response = admin_client.post(url, data=form_data)
-    expected_redirect_url = reverse('news:detail', args=pk_for_args_news) + '#comments'
+    expected_redirect_url = reverse(
+        'news:detail',
+        args=pk_for_args_news
+    ) + '#comments'
     assertRedirects(response, expected_redirect_url)
     news.refresh_from_db()
     comments_set = news.comment_set.all()
@@ -34,9 +42,16 @@ def test_user_can_send_comment(admin_client, news, form_data, pk_for_args_news):
 
 
 @pytest.mark.django_db
-def test_comment_has_bad_words(admin_client, news, pk_for_args_news, form_data):
+def test_comment_has_bad_words(
+    admin_client,
+    news,
+    pk_for_args_news,
+    form_data
+):
     url = reverse('news:detail', args=pk_for_args_news)
-    form_data['text'] = f"Комментарий содержит запрещенное слово: {BAD_WORDS[0]}"
+    form_data['text'] = (
+        f"Комментарий содержит запрещенное слово: {BAD_WORDS[0]}"
+    )
     response = admin_client.post(url, data=form_data)
     assertFormError(response, 'form', 'text', errors=[WARNING])
     news.refresh_from_db()
@@ -44,10 +59,18 @@ def test_comment_has_bad_words(admin_client, news, pk_for_args_news, form_data):
     assert comments_set.count() == 0
 
 
-def test_user_can_edit_his_comment(author_client, comment, pk_for_args_comments, form_data):
+def test_user_can_edit_his_comment(
+        author_client,
+        comment,
+        pk_for_args_comments,
+        form_data
+):
     url = reverse('news:edit', args=pk_for_args_comments)
     response = author_client.post(url, form_data)
-    expected_redirect_url = reverse('news:detail', args=pk_for_args_comments)+'#comments'
+    expected_redirect_url = reverse(
+        'news:detail',
+        args=pk_for_args_comments
+    ) + '#comments'
     assertRedirects(response, expected_redirect_url)
     comment.refresh_from_db()
     assert comment.text == form_data['text']
@@ -56,7 +79,10 @@ def test_user_can_edit_his_comment(author_client, comment, pk_for_args_comments,
 def test_user_can_delete_his_comment(author_client, pk_for_args_comments):
     url = reverse('news:delete', args=pk_for_args_comments)
     response = author_client.post(url)
-    expected_redirect_url = reverse('news:detail', args=pk_for_args_comments)+'#comments'
+    expected_redirect_url = reverse(
+        'news:detail',
+        args=pk_for_args_comments
+    ) + '#comments'
     assertRedirects(response, expected_redirect_url)
     assert Comment.objects.count() == 0
 
