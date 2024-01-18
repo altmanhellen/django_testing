@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
 from django.contrib.auth.models import User
-from django.urls import reverse_lazy
 from pytils.translit import slugify
 
 from notes.forms import WARNING
@@ -22,19 +21,18 @@ class TestNoteCreation(BaseTest):
             text='Текст',
             author=cls.user
         )
-        cls.url = reverse_lazy('notes:detail', args=(cls.notes.slug,))
+        cls.url = cls.DETAIL_URL(cls.notes.slug)
 
     def _test_note_creation_with_slug(self, slug=None):
-        url = reverse_lazy('notes:add')
+        url = self.ADD_URL
         form_data = self.form_data.copy()
         if slug is not None:
             form_data['slug'] = slug
-        else:
-            form_data.pop('slug', None)
+        form_data.pop('slug', None)
 
         initial_count = Note.objects.count()
         response = self.auth_client.post(url, form_data)
-        self.assertRedirects(response, reverse_lazy('notes:success'))
+        self.assertRedirects(response, self.SUCCESS)
         self.assertEqual(Note.objects.count(), initial_count + 1)
 
         new_note = Note.objects.latest('id')
@@ -54,7 +52,7 @@ class TestNoteCreation(BaseTest):
         self._test_note_creation_with_slug()
 
     def test_not_unique_slug(self):
-        url = reverse_lazy('notes:add')
+        url = self.ADD_URL
         non_unique_slug = self.notes.slug
         self.form_data['slug'] = non_unique_slug
         response = self.auth_client.post(url, self.form_data)
@@ -72,13 +70,13 @@ class TestNoteCreation(BaseTest):
 
     def test_author_can_edit_note(self):
         initial_count = Note.objects.count()
-        url = reverse_lazy('notes:edit', args=(self.notes.slug, ))
+        url = self.EDIT_URL(self.notes.slug)
         updated_data = {
             'title': 'Новый заголовок',
             'text': 'Обновленный текст заметки'
         }
         response = self.auth_client.post(url, updated_data)
-        self.assertRedirects(response, reverse_lazy('notes:success'))
+        self.assertRedirects(response, self.SUCCESS)
         updated_note = Note.objects.get(pk=self.notes.pk)
         self.assertEqual(updated_note.title, updated_data['title'])
         self.assertEqual(updated_note.text, updated_data['text'])
@@ -86,11 +84,14 @@ class TestNoteCreation(BaseTest):
         self.assertEqual(new_count, initial_count)
 
     def test_other_user_cant_edit_note(self):
+        initial_count = Note.objects.count()
         other_user = User.objects.create_user(username='Александр Дюма')
         other_client = self.create_auth_client(other_user)
-        url = reverse_lazy('notes:edit', args=(self.notes.slug, ))
+        url = self.EDIT_URL(self.notes.slug)
         response = other_client.post(url, self.form_data)
         self.assertNotEqual(response.status_code, HTTPStatus.OK)
         note_from_db = Note.objects.get(id=self.notes.id)
         self.assertEqual(self.notes.title, note_from_db.title)
         self.assertEqual(self.notes.text, note_from_db.text)
+        new_count = Note.objects.count()
+        self.assertEqual(new_count, initial_count)

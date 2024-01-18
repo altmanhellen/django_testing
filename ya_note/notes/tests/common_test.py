@@ -13,6 +13,7 @@ class BaseTestForCommonUrls:
         cls.LIST_URL = reverse_lazy('notes:list')
         cls.ADD_URL = reverse_lazy('notes:add')
         cls.LOGIN_URL = reverse_lazy('users:login')
+        cls.SUCCESS = reverse_lazy('notes:success')
         cls.EDIT_URL = lambda slug: reverse_lazy('notes:edit', args=(slug,))
         cls.DELETE_URL = lambda slug: reverse_lazy(
             'notes:delete',
@@ -66,10 +67,11 @@ class CommonTest(BaseTestForCommonUrls, TestCase):
         self.client.force_login(self.author)
 
 
-class BaseTest(TestCase):
+class BaseTest(BaseTestForCommonUrls, TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        super().setUpTestData()
         cls.user = User.objects.create(username='Мимо Крокодил')
         cls.auth_client = cls.create_auth_client(cls.user)
 

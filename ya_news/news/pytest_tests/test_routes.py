@@ -1,8 +1,6 @@
 import pytest
 from http import HTTPStatus
 
-from django.urls import reverse
-from pytest_django.asserts import assertRedirects
 from pytest_lazyfixture import lazy_fixture
 
 pytestmark = pytest.mark.django_db
@@ -15,7 +13,6 @@ URLS_FOR_ANONYMOUS_USERS = (
     'detail_url'
 )
 URLS_FOR_AUTHORS = ('comment_edit_url', 'comment_delete_url')
-LOGIN_URL = reverse('users:login')
 
 
 @pytest.mark.parametrize('target_url', URLS_FOR_ANONYMOUS_USERS)
@@ -25,28 +22,37 @@ def test_availability_for_anonymous_user(request, client, target_url):
     assert response.status_code == HTTPStatus.OK
 
 
-@pytest.mark.parametrize('target_url', URLS_FOR_AUTHORS)
 @pytest.mark.parametrize(
-    'client_fixture, expected_status',
-    [
-        (lazy_fixture('author_client'), HTTPStatus.OK),
-        (lazy_fixture('another_author_client'), HTTPStatus.NOT_FOUND),
-        (lazy_fixture('client'), LOGIN_URL)
-    ]
+    'target_url',
+    URLS_FOR_ANONYMOUS_USERS + URLS_FOR_AUTHORS
+)
+@pytest.mark.parametrize(
+    'client_role, client_fixture, expected_status',
+    (
+        ('author', lazy_fixture('author_client'), HTTPStatus.OK),
+        (
+            'other_author',
+            lazy_fixture('another_author_client'),
+            HTTPStatus.NOT_FOUND
+        ),
+        ('anonym', lazy_fixture('client'), HTTPStatus.FOUND)
+    )
 )
 def test_author_user_routes(
     request,
+    client_role,
     client_fixture,
     target_url,
     expected_status
 ):
     url = request.getfixturevalue(target_url)
     response = client_fixture.get(url)
-
-    if isinstance(expected_status, HTTPStatus):
-        assert response.status_code == expected_status
+    if target_url in URLS_FOR_AUTHORS:
+        if client_role == 'other_author':
+            expected_status = HTTPStatus.NOT_FOUND
+        elif client_role == 'anonym':
+            expected_status = HTTPStatus.FOUND
     else:
-        assertRedirects(
-            response,
-            expected_url=f'{expected_status}?next={url}'
-        )
+        expected_status = HTTPStatus.OK
+
+    assert response.status_code == expected_status

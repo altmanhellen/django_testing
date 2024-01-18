@@ -12,6 +12,12 @@ FORM_DATA = {
 
 
 @pytest.fixture
+def client():
+    client = Client()
+    return client
+
+
+@pytest.fixture
 def author(django_user_model):
     return django_user_model.objects.create(username='Достоевский')
 
@@ -78,28 +84,28 @@ def signup_url():
 @pytest.fixture
 def detail_url(news):
     news_object, news_pk = news
-    return reverse('news:detail', args=(news_pk, ))
+    return reverse('news:detail', args=(news_pk,))
 
 
 @pytest.fixture
 def news_edit_url(news):
     news_object, news_pk = news
-    return reverse('news:edit', args=(news_pk, ))
+    return reverse('news:edit', args=(news_pk,))
 
 
 @pytest.fixture
 def news_delete_url(news):
     news_object, news_pk = news
-    return reverse('news:delete', args=(news_pk, ))
+    return reverse('news:delete', args=(news_pk,))
 
 
 @pytest.fixture
 def comment_edit_url(comment):
     comment_object, comment_pk = comment
-    return reverse('news:edit', args=(comment_pk, ))
+    return reverse('news:edit', args=(comment_pk,))
 
 
 @pytest.fixture
 def comment_delete_url(comment):
     comment_object, comment_pk = comment
-    return reverse('news:delete', args=(comment_pk, ))
+    return reverse('news:delete', args=(comment_pk,))
